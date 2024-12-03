@@ -5,6 +5,7 @@ const fs = require("fs");
 const Hashes = require("./temp.json");
 const Ledger = require("./ledger.json");
 const IPM_Chain = require("./blockchain.json");
+
 // Creating Block
 class Block {
     constructor(blockNumber, timestamp, data, prevHash = "") {
@@ -33,8 +34,6 @@ class Block {
             this.nonce++;
             this.hash = this.calculateHash();
         }
-
-        // console.log("Block Mined :: " + this.hash);
     }
 }
 
@@ -43,7 +42,7 @@ class Blockchain {
     constructor() {
         this.difficulty = 3;
 
-        if (IPM_Chain.chain.length == 0) {
+        if (IPM_Chain.chain.length === 0) {
             IPM_Chain.chain.push(this.createGenesisBlock());
             fs.writeFileSync("./blockchain.json", JSON.stringify(IPM_Chain));
         }
@@ -56,111 +55,51 @@ class Blockchain {
     addBlock(newBlock) {
         newBlock.prevHash = IPM_Chain.chain[IPM_Chain.chain.length - 1].hash;
         newBlock.mineBlock(this.difficulty);
-        return newBlock;
+        IPM_Chain.chain.push(newBlock);
+        fs.writeFileSync("./blockchain.json", JSON.stringify(IPM_Chain));
     }
 }
 
-// creating Blockchain Object
+// Creating Blockchain Object
 const moimo = new Blockchain();
 
 // Management Storage
-class management {
+class Management {
     constructor() {}
+
     makeFileHash(data) {
-        const hash = crypto
+        return crypto
             .createHash("sha256")
             .update(data)
-            .digest("hex")
-            .toString();
-
-        return hash;
+            .digest("hex");
     }
 
-    issue_IPM(data) {
+    issueIPM(data) {
         const localHash = this.makeFileHash(data);
-        var i = 0,
-            j = 0;
-        var flagHash = false;
-        var flagLedger = false;
-        while (i < Hashes.hash.length) {
-            if (localHash == Hashes.hash[i]) {
-                flagHash = true;
-            }
-            i++;
-        }
-
-        while (j < Ledger.ledger.length) {
-            if (localHash == Ledger.ledger[j]) {
-                flagLedger = true;
-            }
-            j++;
-        }
-        if (flagHash === false && flagLedger === false) {
+        if (!Hashes.hash.includes(localHash) && !Ledger.ledger.includes(localHash)) {
             Hashes.hash.push(localHash);
             fs.writeFileSync("./temp.json", JSON.stringify(Hashes));
         } else {
-            console.log(
-                "\nThis Certificate is already exist in the blockchain or Local Storage.\nTry Another Certificate\nThank You\n\n\n"
-            );
+            console.log("\nThis Certificate is already in the blockchain or Local Storage.\nTry another certificate.\nThank you.\n");
         }
     }
-    createBlock() {
-        var limitHash = Hashes.hash.length;
-        var limitLedger = Ledger.ledger.length;
-        var maxLimit = limitHash + limitLedger;
-        var flag = false;
-        var data = [];
 
-        for (var i = 0; i < limitHash; i++) {
-            data.push(Hashes.hash[i]);
-        }
-        for (var i = 0; i < limitHash; i++) {
-            Hashes.hash.pop();
-        }
+    createBlock() {
+        const data = [...Hashes.hash];
+        Hashes.hash = [];
         fs.writeFileSync("./temp.json", JSON.stringify(Hashes));
 
-        for (var m = 0; m < limitHash; m++) {
-            for (var n = 0; n < limitLedger; n++) {
-                if (data[m] == Ledger.ledger[n]) {
-                    flag = true;
-                }
-            }
-        }
-
-        if (flag === false) {
-            for (var i = 0; i < limitHash; i++) {
-                Ledger.ledger.push(data[i]);
-            }
-
+        const alreadyInLedger = data.some(hash => Ledger.ledger.includes(hash));
+        if (!alreadyInLedger) {
+            Ledger.ledger.push(...data);
             fs.writeFileSync("./ledger.json", JSON.stringify(Ledger));
-
-            IPM_Chain.chain.push(
-                moimo.addBlock(
-                    new Block(IPM_Chain.chain.length, Date.now(), data)
-                )
-            );
-            fs.writeFileSync("./blockchain.json", JSON.stringify(IPM_Chain));
+            moimo.addBlock(new Block(IPM_Chain.chain.length, Date.now(), data));
         }
     }
-    verify_IPM(data) {
+
+    verifyIPM(data) {
         const localHash = this.makeFileHash(data);
-        var i = 0,
-            j = 0;
-        var flagHash = false;
-        var flagLedger = false;
-        while (i < Hashes.hash.length) {
-            if (localHash == Hashes.hash[i]) {
-                flagHash = true;
-            }
-            i++;
-        }
-        while (j < Ledger.ledger.length) {
-            if (localHash == Ledger.ledger[j]) {
-                flagLedger = true;
-            }
-            j++;
-        }
-        if (flagHash === true || flagLedger === true) {
+        if (Hashes.hash.includes(localHash) || Ledger.ledger.includes(localHash)) {
             console.log("\nThis Candidate is Valid\n");
         } else {
             console.log("\nThis Candidate is Invalid\n");
@@ -168,15 +107,13 @@ class management {
     }
 }
 
-//Management Object
-const mng = new management();
+// Management Object
+const mng = new Management();
 
-const hashMaker = fs.readFileSync(
-    `./Certificate/1-validCertificate/VC:2-1--103--Sumon.jpg`
-);
+const hashMaker = fs.readFileSync(`./Certificate/1-validCertificate/VC:2-1--103--Sumon.jpg`);
 
-// mng.issue_IPM(hashMaker);
+// mng.issueIPM(hashMaker);
 // mng.createBlock();
-// mng.verify_IPM(hashMaker);    `
+// mng.verifyIPM(hashMaker);
 
 console.log(IPM_Chain);
